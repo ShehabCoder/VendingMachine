@@ -9,6 +9,7 @@ import logging
 logging.basicConfig(level=logging.ERROR,format='----->%(asctime)s - %(name)s - %(message)s ') 
 
 pwd=CryptContext(schemes=["bcrypt"],deprecated="auto")
+
 def hashing(value):
 
     return  pwd.hash(value)

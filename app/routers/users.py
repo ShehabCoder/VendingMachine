@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Response, status,APIRouter, Depends
 import logging
 from ..util import get_db_conn_cur,hashing
 from app import schemas
+from app.oauth2 import get_current_user 
 
 logging.basicConfig(level=logging.ERROR,format='----->%(asctime)s - %(name)s - %(message)s ') 
 
@@ -35,9 +36,9 @@ def add_user(user: schemas.user,Dependcies:tuple=Depends(get_db_conn_cur)):
         conn=Dependcies[0]
         cur=Dependcies[1]
         cur.execute(
-            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) RETURNING *;",
-            (user.username,hashing( user.password), user.role)
-        )
+            "INSERT INTO users (username, password, role, deposit) VALUES (%s, %s, %s, %s) RETURNING *;",
+            (user.username,hashing(user.password), user.role,user.deposit))
+        
         inserted_user = cur.fetchone()
 
         conn.commit()
@@ -51,13 +52,15 @@ def add_user(user: schemas.user,Dependcies:tuple=Depends(get_db_conn_cur)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @userRouter.put("/user/{id}")
-async def update_user( id:int,user:schemas.user,Dependencies:tuple=Depends(get_db_conn_cur)):
-   
+async def update_user( id:int,user:schemas.user,Dependencies:tuple=Depends(get_db_conn_cur),current_user:dict=Depends(get_current_user)):
+    logging.error(f"----------------=================CurrentUser=============== {current_user}")
     conn=Dependencies[0]
     cur=Dependencies[1]
 
     try:
-        cur.execute("""UPDATE users SET username=%s ,password=%s,role=%s WHERE seller_id=%s returning username,role,seller_id;""", 
+        if current_user['role']!='seller':
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="You are not authorized to access this data")
+        cur.execute("""UPDATE users SET username=%s ,password=%s,role=%s WHERE id=%s returning username,role,id;""", 
                     (user.username,hashing(user.password),user.role,id))
         updated_user= dict(cur.fetchone())
         conn.commit()
@@ -72,7 +75,8 @@ async def update_user( id:int,user:schemas.user,Dependencies:tuple=Depends(get_d
 
 
 @userRouter.get("/user/{id}")
-async def update_user( id:int,Dependencies: tuple=Depends(get_db_conn_cur)):
+async def get_user( id:int,Dependencies: tuple=Depends(get_db_conn_cur),current_user:dict=Depends(get_current_user)):
+    logging.error(f"----------------=================CurrentUser=============== {current_user}")
 
 
    
@@ -80,18 +84,20 @@ async def update_user( id:int,Dependencies: tuple=Depends(get_db_conn_cur)):
     cur=Dependencies[1]
 
     try:
-        cur.execute("""SELECT username,role,seller_id
+        if current_user['role']!='seller':
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="You are not authorized to access this data")
+        cur.execute("""SELECT username,role,id
                         FROM users
-                        WHERE seller_id = %s
+                        WHERE id = %s
                         """, 
                     (id,))
-        updated_user=dict(cur.fetchone() )
+        get_user=dict(cur.fetchone() )
         conn.commit()
         logging.error(f"<--The user exists Details---")
-        return {"Message":f"The user {updated_user.get('username')}-{updated_user} exists"}
+        return {"Message":f"The user {get_user.get('username')}-{get_user} exists"}
     except Exception as e:
         conn.rollback()
-        logging.error(f"Failed to update user: {e}")
+        logging.error(f"Failed to get user: {e}")
         raise  HTTPException(status_code=404,detail=f"{e}")
     
     
@@ -100,16 +106,19 @@ async def update_user( id:int,Dependencies: tuple=Depends(get_db_conn_cur)):
 
 
 @userRouter.delete("/user/{id}")
-async def update_user( id:int,Dependencies: tuple=Depends(get_db_conn_cur)):
+async def delete_user( id:int,Dependencies: tuple=Depends(get_db_conn_cur),current_user:dict=Depends(get_current_user)):
+    logging.error(f"----------------=================CurrentUser=============== {current_user}")
     
    
     conn=Dependencies[0]
     cur=Dependencies[1]
 
     try:
+        if current_user['role']!='seller':
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="You are not authorized to access this data")
         cur.execute("""DELETE 
                         FROM users
-                        WHERE seller_id = %s RETURNING  *;""", 
+                        WHERE id = %s RETURNING  *;""", 
                         
                     (id,))
         deleted_user=dict(cur.fetchone() )
@@ -119,4 +128,4 @@ async def update_user( id:int,Dependencies: tuple=Depends(get_db_conn_cur)):
     except Exception as e:
         conn.rollback()
         logging.error(f"Failed to update user: {e}")
-        raise  HTTPException(status_code=404,detail=f"{e}")
+        raise  HTTPException(status_code=404,detail=f"===={e}")

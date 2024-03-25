@@ -31,14 +31,14 @@ async def UserLogin(userdata:OAuth2PasswordRequestForm=Depends(), Dependencies:l
         # logging.error(f"================{bool(correctedPassword)}")
         if not user or not  correctedPassword :
             raise HTTPException(status_code=404, detail="Incorrect username or password")
-        token=create_user_token({"username:":user['username'],"role":user['role']})
+        token=create_user_token({"username":user['username'],"role":user['role'],"deposit":user['deposit'],"id":user['id']})
         logging.error(f"User =={token}== Login Successful")
         return token
         
     except Exception as e:
         conn.rollback()
         logging.error("An error occurred while trying to login the user")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=str(e)) 
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"----- Usr Not Exist {str(e)}") 
 
 
 
