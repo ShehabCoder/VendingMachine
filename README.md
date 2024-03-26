@@ -34,7 +34,7 @@ Before getting started, make sure you have completed the following steps:
 5. [Deposits](#deposits)
 6. [Purchases](#purchases)
 7. [Reset](#reset)
-8.. [Error Handling](#error-handling)
+8. [Error Handling](#error-handling)
 9. [Edge Cases](#edge-cases)
 
 ## Authentication
