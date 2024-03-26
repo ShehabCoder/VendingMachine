@@ -1,9 +1,11 @@
 from passlib.context import CryptContext
 from dotenv import load_dotenv
+from fastapi import Depends
 import os
 import time
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2.extensions import *
 import logging
 
 logging.basicConfig(level=logging.ERROR,format='----->%(asctime)s - %(name)s - %(message)s ') 
@@ -49,3 +51,35 @@ def get_db_conn_cur()  :
         logging.error(f'faild to connect with database {e}')
         time.sleep(2)
 
+
+
+def create_tables(Dependcies):
+    # SQL commands to create tables
+    users_table_sql = """
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        role VARCHAR,
+        deposit INTEGER,
+        username VARCHAR,
+        password VARCHAR
+    )
+    """
+
+    products_table_sql = """
+    CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR,
+        price INTEGER,
+        inventory INTEGER,
+        is_sale BOOLEAN,
+        created_at TIMESTAMP,
+        seller_id INTEGER
+    )
+    """
+
+    # Execute SQL commands to create tables
+    conn=Dependcies[0]
+    cur=Dependcies[1]
+    cur.execute(users_table_sql)
+    cur.execute(products_table_sql)
+    conn.commit()

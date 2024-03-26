@@ -13,8 +13,11 @@ userRouter=APIRouter(tags=["Users"])
 
 
 @userRouter.get("/users")
-async def user(Dependcies:tuple=Depends(get_db_conn_cur)):
+async def user(Dependcies:tuple=Depends(get_db_conn_cur),current_user:dict=Depends(get_current_user)):
+
     try:
+        if current_user["role"]!="seller":
+            raise HTTPException(status_code=403,detail="You don't have permission to access this API.")
         conn=Dependcies[0]
         cur=Dependcies[1]
         cur.execute("""SELECT * FROM users""")
@@ -27,17 +30,18 @@ async def user(Dependcies:tuple=Depends(get_db_conn_cur)):
 
     except Exception as e:
         logging.error(f"Error in fetching Users Details {e}")
-        raise  HTTPException(status_code=503,detail="Service Faild to Get  the Users")
+        
+        return {"Message":f"{str(e)}"}
     
 @userRouter.post("/signUp")
-def add_user(user: schemas.user,Dependcies:tuple=Depends(get_db_conn_cur)):
+def add_user(user: schemas.CreateUser,Dependcies:tuple=Depends(get_db_conn_cur)):
     try:
         # Execute the SQL query to insert the new user
         conn=Dependcies[0]
         cur=Dependcies[1]
         cur.execute(
-            "INSERT INTO users (username, password, role, deposit) VALUES (%s, %s, %s, %s) RETURNING *;",
-            (user.username,hashing(user.password), user.role,user.deposit))
+            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s) RETURNING *;",
+            (user.username,hashing(user.password), user.role))
         
         inserted_user = cur.fetchone()
 

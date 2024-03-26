@@ -30,7 +30,25 @@ class user(BaseModel):
         if deposit not in (5,10,20,50,100):
             raise ValueError("Invalid Deposit Only Allowed (5,10,20,50,10)")
         return deposit
+
+
+class CreateUser(BaseModel):
+    username:str
+    password:str
+    role:str
+
+    @validator('role')
+    def check_role(cls, role: str):
+        if role not in ('seller', 'buyer'):
+            raise ValueError("Invalid Role")
+        return role
     
+ 
+
+
+
+
+
 
 class deposit(BaseModel):
   
@@ -41,6 +59,13 @@ class deposit(BaseModel):
         if deposit not in (5,10,20,50,100):
             raise ValueError("Invalid Deposit Only Allowed (5,10,20,50,10)")
         return deposit
+
+class order(BaseModel):
+  
+    product_id:int
+    product_quantity:int
+    
+    
     
 
 class userDelete(BaseModel):
